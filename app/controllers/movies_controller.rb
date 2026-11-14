@@ -21,6 +21,10 @@ class MoviesController < ApplicationController
     # default: render 'new' template
   end
 
+  def movie_params
+    params.require(:movie).permit(:title, :rating, :description, :release_date)
+  end
+
   def create
     @movie = Movie.create!(movie_params)
     flash[:notice] = "#{@movie.title} was successfully created."
@@ -43,6 +47,32 @@ class MoviesController < ApplicationController
     @movie.destroy
     flash[:notice] = "Movie '#{@movie.title}' deleted."
     redirect_to movies_path
+  end
+  def search_tmdb
+    if params[:title].blank?
+      @movies = []
+      flash.now[:danger] = 'Please fill in all required fields!'
+      return
+    end
+
+    @movies = Movie.find_in_tmdb(
+      title: params[:title],
+      release_year: params[:release_year].presence,
+      language: params[:language].presence || 'en'
+    )
+
+    flash.now[:danger] = 'No movies found with given parameters!' if @movies.empty?
+  end
+
+  def add_movie
+    @movie = Movie.create!(
+      title: params[:title],
+      release_date: params[:release_date].presence,
+      description: params[:description],
+      rating: params[:rating].presence || 'R'
+    )
+    flash[:success] = "#{@movie.title} was successfully added to RottenPotatoes."
+    redirect_to search_tmdb_path
   end
 
   private
